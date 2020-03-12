@@ -123,7 +123,7 @@ impl TracePlotRepr {
             } else if let Some((ww, hh)) = term_size::dimensions() {
                 (ww - 10, hh - 10)
             } else {
-                (40, 20)
+                (45, 15)
             };
 
         let w      = w as u32;
