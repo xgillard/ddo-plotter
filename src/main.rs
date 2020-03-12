@@ -20,11 +20,12 @@
 #[macro_use]
 extern crate lazy_static;
 extern crate structopt;
+extern crate regex;
 
-use structopt::StructOpt;
-use crate::trace::Trace;
 use std::io::{stdin, BufReader, BufRead, BufWriter};
 use std::fs::File;
+use structopt::StructOpt;
+use crate::trace::{Trace, Dimension};
 
 mod trace;
 
@@ -40,6 +41,9 @@ struct Args {
     /// If set, the complete trace data will be save to json for further processing
     #[structopt(name="json", short, long)]
     json_fname : Option<String>,
+    /// If set, the dimension of the terminal (otherwise it will attempt to auto detect)
+    #[structopt(name="dimension", short, long)]
+    dimension  : Option<Dimension>,
 }
 
 fn main() -> Result<(), std::io::Error> {
@@ -61,6 +65,6 @@ fn main() -> Result<(), std::io::Error> {
         serde_json::to_writer(out, &trace).expect("Could not write JSON")
     }
 
-    trace.plot_to_term();
+    trace.plot_to_term(args.dimension);
     Ok(())
 }

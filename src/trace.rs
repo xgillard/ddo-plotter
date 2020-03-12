@@ -26,6 +26,7 @@ use plotlib::page::Page;
 use plotlib::view::ContinuousView;
 use std::cmp::{min, max};
 use std::io::{BufRead, Lines};
+use std::str::FromStr;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Trace {
@@ -49,8 +50,8 @@ impl Trace {
     //        .collect()
     //}
 
-    pub fn plot_to_term(&self) {
-        TracePlotRepr::from(self).plot_to_term();
+    pub fn plot_to_term(&self, dim: Option<Dimension>) {
+        TracePlotRepr::from(self).plot_to_term(dim);
     }
 
     pub fn plot_to_file(&self, fname: &str) {
@@ -82,6 +83,27 @@ impl <'a, X: BufRead> From<Lines<X>> for Trace {
     }
 }
 
+static DIM_FMT: &str = r"(?P<WIDTH>\d+),\s*(?P<HEIGHT>\d+)";
+lazy_static! {
+    static ref DIM_RE : Regex = Regex::new(DIM_FMT).unwrap();
+}
+
+#[derive(Clone, Copy)]
+pub struct Dimension(usize, usize);
+
+impl FromStr for Dimension {
+    type Err = &'static str;
+    fn from_str(txt: &str) -> Result<Dimension, Self::Err> {
+        if let Some(caps) = DIM_RE.captures(txt) {
+            let w = caps["WIDTH"].parse::<usize>().unwrap();
+            let h = caps["HEIGHT"].parse::<usize>().unwrap();
+            Ok(Dimension(w, h))
+        } else {
+            Err("Input does not conform to format 'width,height'")
+        }
+    }
+}
+
 struct TracePlotRepr {
     y_range    : (f64, f64),
     ub_explored: Vec<(f64, f64)>,
@@ -94,9 +116,11 @@ impl TracePlotRepr {
     fn set_ub_style(ub: Scatter) -> Scatter {
         ub.style(Style::new().marker(Marker::Cross).colour("#90B9A9"))
     }
-    pub fn plot_to_term(&self) {
+    pub fn plot_to_term(&self, dim: Option<Dimension>) {
         let (w, h) =
-            if let Some((ww, hh)) = term_size::dimensions() {
+            if let Some(Dimension(ww, hh)) = dim {
+                (ww, hh)
+            } else if let Some((ww, hh)) = term_size::dimensions() {
                 (ww - 10, hh - 10)
             } else {
                 (40, 20)
@@ -237,7 +261,7 @@ mod test {
 
         assert_eq!(11,   parsed.lb());
         assert_eq!(11,   parsed.ub());
-        assert_eq!(0 ,   parsed.fringe());
+        //assert_eq!(0 ,   parsed.fringe());
         assert_eq!(6790, parsed.explored());
     }
     #[test]
@@ -247,7 +271,7 @@ mod test {
 
         assert_eq!(11,   parsed.lb());
         assert_eq!(12,   parsed.ub());
-        assert_eq!(90,   parsed.fringe());
+        //assert_eq!(90,   parsed.fringe());
         assert_eq!(6700, parsed.explored());
     }
     #[test]
@@ -257,7 +281,7 @@ mod test {
 
         assert_eq!(-11,  parsed.lb());
         assert_eq!(-11,  parsed.ub());
-        assert_eq!(0 ,   parsed.fringe());
+        //assert_eq!(0 ,   parsed.fringe());
         assert_eq!(6790, parsed.explored());
     }
     #[test]
@@ -267,7 +291,7 @@ mod test {
 
         assert_eq!(-11,  parsed.lb());
         assert_eq!(-12,  parsed.ub());
-        assert_eq!(90,   parsed.fringe());
+        //assert_eq!(90,   parsed.fringe());
         assert_eq!(6700, parsed.explored());
     }
 
@@ -281,7 +305,7 @@ mod test {
     #[test]
     fn parse_empty_trace() {
         let log   = "";
-        let trace = Trace::from(log.lines());
+        let trace = Trace::from(log);
 
         assert_eq!(0, trace.lines.len())
     }
@@ -303,7 +327,7 @@ Optimum 11 computed in 5.042205s with 1 threads
 ### Solution: ################################################
  4 13 27 31 45 56 78 88 102 124 133
 ";
-        let trace = Trace::from(log.lines());
+        let trace = Trace::from(log);
 
         assert_eq!(10, trace.lines.len());
     }
