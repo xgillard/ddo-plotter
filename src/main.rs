@@ -44,6 +44,9 @@ struct Args {
     /// If set, the dimension of the terminal (otherwise it will attempt to auto detect)
     #[structopt(name="dimension", short, long)]
     dimension  : Option<Dimension>,
+    /// If set, prints the evolution of the fringe size
+    #[structopt(name="fringe", short, long)]
+    fringe     : bool,
 }
 
 fn main() -> Result<(), std::io::Error> {
@@ -57,7 +60,7 @@ fn main() -> Result<(), std::io::Error> {
         };
 
     if let Some(fname) = args.graph_fname {
-        trace.plot_to_file(fname.as_str());
+        trace.plot_to_file(args.fringe, fname.as_str());
     }
 
     if let Some(fname) = args.json_fname {
@@ -65,6 +68,6 @@ fn main() -> Result<(), std::io::Error> {
         serde_json::to_writer(out, &trace).expect("Could not write JSON")
     }
 
-    trace.plot_to_term(args.dimension);
+    trace.plot_to_term(args.fringe, args.dimension);
     Ok(())
 }

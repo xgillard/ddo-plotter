@@ -44,18 +44,26 @@ impl Trace {
             .map(|ll| (ll.explored() as f64, ll.ub() as f64))
             .collect()
     }
-    //pub fn fringe_explored(&self) -> Vec<(f64, f64)> {
-    //    self.lines.iter()
-    //        .map(|ll| (ll.explored() as f64, ll.fringe() as f64))
-    //        .collect()
-    //}
-
-    pub fn plot_to_term(&self, dim: Option<Dimension>) {
-        TracePlotRepr::from(self).plot_to_term(dim);
+    pub fn fringe_explored(&self) -> Vec<(f64, f64)> {
+        self.lines.iter()
+            .map(|ll| (ll.explored() as f64, ll.fringe() as f64))
+            .collect()
     }
 
-    pub fn plot_to_file(&self, fname: &str) {
-        TracePlotRepr::from(self).plot_to_file(fname);
+    pub fn plot_to_term(&self, fringe: bool, dim: Option<Dimension>) {
+        if fringe {
+            FringePlotRepr::from(self).plot_to_term(dim);
+        } else {
+            TracePlotRepr::from(self).plot_to_term(dim);
+        }
+    }
+
+    pub fn plot_to_file(&self, fringe: bool, fname: &str) {
+        if fringe {
+            FringePlotRepr::from(self).plot_to_file(fname);
+        } else {
+            TracePlotRepr::from(self).plot_to_file(fname);
+        }
     }
 }
 
@@ -100,6 +108,62 @@ impl FromStr for Dimension {
             Ok(Dimension(w, h))
         } else {
             Err("Input does not conform to format 'width,height'")
+        }
+    }
+}
+
+struct FringePlotRepr{
+    y_range     : (f64, f64),
+    fsz_explored: Vec<(f64, f64)>
+}
+impl FringePlotRepr {
+    fn set_fsz_size(lb: Scatter) -> Scatter {
+        lb.style(Style::new().marker(Marker::Square).colour("#C1EBE1"))
+    }
+    pub fn plot_to_term(&self, dim: Option<Dimension>) {
+        let (w, h) =
+            if let Some(Dimension(ww, hh)) = dim {
+                (ww, hh)
+            } else if let Some((ww, hh)) = term_size::dimensions() {
+                (ww - 10, hh - 10)
+            } else {
+                (45, 15)
+            };
+
+        let w      = w as u32;
+        let h      = h as u32;
+        let (x ,y) = self.y_range;
+        let fsz    = Self::set_fsz_size(Scatter::from_slice(&self.fsz_explored));
+        let view   = ContinuousView::new()
+            .add(&fsz)
+            .y_range(x, y)
+            .x_label("Explored Nodes")
+            .y_label("Fringe Size");
+
+        println!("{}", Page::single(&view).dimensions(w, h).to_text().unwrap());
+    }
+
+    pub fn plot_to_file(&self, fname: &str) {
+        let (x ,y) = self.y_range;
+        let fsz    = Self::set_fsz_size(Scatter::from_slice(&self.fsz_explored));
+        let view   = ContinuousView::new()
+            .add(&fsz)
+            .y_range(x, y)
+            .x_label("Explored Nodes")
+            .y_label("Fringe Size");
+
+        Page::single(&view).save(fname).expect("Could not save");
+    }
+}
+impl From<&Trace> for FringePlotRepr {
+    fn from(trace: &Trace) -> Self {
+        let low   = trace.lines.iter().map(|ll| ll.fringe()).min().unwrap_or(0);
+        let high  = trace.lines.iter().map(|ll| ll.fringe()).max().unwrap_or(0);
+        let range = (low as f64 - 1.0, high as f64 + 1.0);
+
+        FringePlotRepr {
+            y_range     : range,
+            fsz_explored: trace.fringe_explored()
         }
     }
 }
@@ -208,12 +272,12 @@ impl LogLine {
             LogLine::Final   {opt_value, .. } => *opt_value
         }
     }
-    //pub fn fringe(&self) -> usize {
-    //    match self {
-    //        LogLine::Ongoing {fringe, .. }    => *fringe,
-    //        LogLine::Final   { .. }           => 0
-    //    }
-    //}
+    pub fn fringe(&self) -> usize {
+        match self {
+            LogLine::Ongoing {fringe, .. }    => *fringe,
+            LogLine::Final   { .. }           => 0
+        }
+    }
 }
 
 static ONGOING_FMT : &str =
