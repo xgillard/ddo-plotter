@@ -19,55 +19,49 @@
 
 #[macro_use]
 extern crate lazy_static;
-extern crate structopt;
 extern crate regex;
+extern crate structopt;
 
-use std::io::{stdin, BufReader, BufRead, BufWriter};
-use std::fs::File;
+use std::convert::TryFrom;
+use std::path::Path;
+
+use plotlib::page::Page;
 use structopt::StructOpt;
-use crate::trace::{Trace, Dimension};
 
-mod trace;
+use crate::data::Trace;
+use crate::repr::{bounds_view, fringe_view};
+
+mod config;
+mod data;
+mod repr;
 
 /// Parse a DDO trace and process it to produce graphs.
 #[derive(StructOpt)]
 struct Args {
     /// If set, the path to a file containg the text of a ddo trace
     #[structopt(name="input", short, long)]
-    input_fname: Option<String>,
+    input: Vec<String>,
     /// If set, the graph will be saved in svg at the specified location.
-    #[structopt(name="svg", short, long)]
-    graph_fname: Option<String>,
-    /// If set, the complete trace data will be save to json for further processing
-    #[structopt(name="json", short, long)]
-    json_fname : Option<String>,
-    /// If set, the dimension of the terminal (otherwise it will attempt to auto detect)
-    #[structopt(name="dimension", short, long)]
-    dimension  : Option<Dimension>,
+    #[structopt(name="output", short, long)]
+    output: String,
     /// If set, prints the evolution of the fringe size
     #[structopt(name="fringe", short, long)]
     fringe     : bool,
 }
 
-fn main() -> Result<(), std::io::Error> {
+fn main() {
     let args = Args::from_args();
 
-    let trace =
-        if let Some(fname) = args.input_fname {
-            Trace::from(BufReader::new(File::open(fname)?).lines())
+    let traces = args.input.iter().map(|fname|
+            Trace::try_from(Path::new(fname)).expect("Cannot open file")
+    ).collect::<Vec<Trace>>();
+
+    let view =
+        if args.fringe {
+            fringe_view(&traces)
         } else {
-            Trace::from(BufReader::new(stdin()).lines())
+            bounds_view(&traces)
         };
 
-    if let Some(fname) = args.graph_fname {
-        trace.plot_to_file(args.fringe, fname.as_str());
-    }
-
-    if let Some(fname) = args.json_fname {
-        let out = BufWriter::new(File::create(fname)?);
-        serde_json::to_writer(out, &trace).expect("Could not write JSON")
-    }
-
-    trace.plot_to_term(args.fringe, args.dimension);
-    Ok(())
+    Page::single(&view).save(&args.output).expect("Cannot save output");
 }
