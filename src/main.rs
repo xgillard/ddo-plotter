@@ -30,6 +30,8 @@ use structopt::StructOpt;
 
 use crate::data::Trace;
 use crate::repr::{bounds_view, fringe_view};
+use std::io::{BufReader, BufRead, stdin};
+use crate::config::{Dimension, Mode};
 
 mod config;
 mod data;
@@ -40,10 +42,13 @@ mod repr;
 struct Args {
     /// If set, the path to a file containg the text of a ddo trace
     #[structopt(name="input", short, long)]
-    input: Vec<String>,
+    input: Option<Vec<String>>,
     /// If set, the graph will be saved in svg at the specified location.
     #[structopt(name="output", short, long)]
-    output: String,
+    output: Option<String>,
+    /// If set, the dimension of the terminal (otherwise it will attempt to auto detect)
+    #[structopt(name="dimension", short, long)]
+    dimension  : Option<Dimension>,
     /// If set, prints the evolution of the fringe size
     #[structopt(name="fringe", short, long)]
     fringe     : bool,
@@ -52,16 +57,34 @@ struct Args {
 fn main() {
     let args = Args::from_args();
 
-    let traces = args.input.iter().map(|fname|
-            Trace::try_from(Path::new(fname)).expect("Cannot open file")
-    ).collect::<Vec<Trace>>();
+    let traces =
+        if let Some(fnames) = &args.input {
+            fnames.iter().map(|fname|
+                Trace::try_from(Path::new(fname)).expect("Cannot open file")
+            ).collect::<Vec<Trace>>()
+        } else {
+            vec![Trace::from(BufReader::new(stdin()).lines())]
+        };
+
+    let mode = if args.output.is_none() { Mode::Text } else { Mode::SVG };
 
     let view =
         if args.fringe {
-            fringe_view(&traces)
+            fringe_view(&traces, mode)
         } else {
-            bounds_view(&traces)
+            bounds_view(&traces, mode)
         };
 
-    Page::single(&view).save(&args.output).expect("Cannot save output");
+    if let Some(out) = &args.output {
+        Page::single(&view).save(out).expect("Cannot save output");
+    } else {
+        let page = Page::single(&view);
+        let page = if let Some(dim) = &args.dimension {
+            page.dimensions(dim.x(), dim.y())
+        } else {
+            page
+        };
+
+        println!("{}", page.to_text().expect("Cant print to text"));
+    }
 }

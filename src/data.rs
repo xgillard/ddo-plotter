@@ -99,34 +99,6 @@ pub struct Trace {
 }
 
 impl Trace {
-    pub fn explored_range(&self) -> (f64, f64) {
-        self.lines.last()
-            .map_or((0., 100.), |l| (0., 1. + l.explored() as f64))
-    }
-    pub fn lb_range(&self) -> (f64, f64) {
-        let lb_min = self.lines.iter()
-                .min_by_key(|l| l.lb())
-                .map_or(0., |l| l.lb() as f64);
-        let lb_max = self.lines.iter()
-            .max_by_key(|l| l.lb())
-            .map_or(0., |l| l.lb() as f64);
-
-        (lb_min, lb_max)
-    }
-    pub fn ub_range(&self) -> (f64, f64) {
-        let ub_min = self.lines.iter()
-            .min_by_key(|l| l.ub())
-            .map_or(0., |l| l.ub() as f64);
-        let ub_max = self.lines.iter()
-            .max_by_key(|l| l.ub())
-            .map_or(0., |l| l.ub() as f64);
-
-        (ub_min, ub_max)
-    }
-    pub fn fringe_range(&self) -> (f64, f64) {
-        self.lines.iter().max_by_key(|l| l.fringe())
-            .map_or((0., 100.), |l| (0., l.fringe() as f64))
-    }
     pub fn lb_explored(&self) -> Vec<(f64, f64)> {
         self.lines.iter()
             .map(|ll| (ll.explored() as f64, ll.lb() as f64))
