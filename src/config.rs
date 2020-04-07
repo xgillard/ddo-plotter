@@ -1,12 +1,6 @@
 use std::str::FromStr;
 
 use regex::Regex;
-
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum Mode {
-    Text, SVG
-}
-
 // --------------------------------------------------------------------------- //
 /// Une dimension en 2d, c'est un tuple avec deux grandeurs.
 // --------------------------------------------------------------------------- //

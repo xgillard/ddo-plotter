@@ -31,7 +31,7 @@ use structopt::StructOpt;
 use crate::data::Trace;
 use crate::repr::{bounds_view, fringe_view};
 use std::io::{BufReader, BufRead, stdin};
-use crate::config::{Dimension, Mode};
+use crate::config::Dimension;
 
 mod config;
 mod data;
@@ -66,13 +66,11 @@ fn main() {
             vec![Trace::from(BufReader::new(stdin()).lines())]
         };
 
-    let mode = if args.output.is_none() { Mode::Text } else { Mode::SVG };
-
     let view =
         if args.fringe {
-            fringe_view(&traces, mode)
+            fringe_view(&traces)
         } else {
-            bounds_view(&traces, mode)
+            bounds_view(&traces)
         };
 
     if let Some(out) = &args.output {

@@ -1,8 +1,7 @@
 use crate::data::Trace;
 use plotlib::repr::Plot;
-use plotlib::style::{PointStyle, PointMarker, LineStyle};
+use plotlib::style::{PointStyle, PointMarker};
 use plotlib::view::ContinuousView;
-use crate::config::Mode;
 
 pub const COLORS : [&str; 5] = [
     "#C1EBE1", "#90B9A9", "#FF0000", "#00FF00", "#0000FF"
@@ -25,59 +24,44 @@ impl Trace {
         })
     }
 
-    pub fn lb_plot(&self, color: &str, mode: Mode) -> Plot {
-        let plot = Plot::new(self.lb_explored())
+    pub fn lb_plot(&self, color: &str) -> Plot {
+        Plot::new(self.lb_explored())
             .legend(self.lb_legend())
-            .point_style(PointStyle::new().marker(PointMarker::Circle).colour(color));
-
-        match mode {
-            Mode::Text => plot,
-            Mode::SVG  => plot.line_style(LineStyle::new().colour(color))
-        }
+            .point_style(PointStyle::new().marker(PointMarker::Circle).size(3.).colour(color))
     }
-    pub fn ub_plot(&self, color: &str, mode: Mode) -> Plot {
-        let plot = Plot::new(self.ub_explored())
+    pub fn ub_plot(&self, color: &str) -> Plot {
+        Plot::new(self.ub_explored())
             .legend(self.ub_legend())
-            .point_style(PointStyle::new().marker(PointMarker::Cross).colour(color));
-
-        match mode {
-            Mode::Text => plot,
-            Mode::SVG  => plot.line_style(LineStyle::new().colour(color))
-        }
+            .point_style(PointStyle::new().marker(PointMarker::Cross).size(3.).colour(color))
     }
-    pub fn fsz_plot(&self, color: &str, mode: Mode) -> Plot {
-        let plot = Plot::new(self.fringe_explored())
+    pub fn fsz_plot(&self, color: &str) -> Plot {
+        Plot::new(self.fringe_explored())
             .legend(self.fsz_legend())
-            .point_style(PointStyle::new().marker(PointMarker::Square).colour(color));
-
-        match mode {
-            Mode::Text => plot,
-            Mode::SVG  => plot.line_style(LineStyle::new().colour(color))
-        }
+            .point_style(PointStyle::new().marker(PointMarker::Square).size(3.).colour(color))
     }
 }
 
-pub fn bounds_view(traces: &[Trace], mode: Mode) -> ContinuousView {
+pub fn bounds_view(traces: &[Trace]) -> ContinuousView {
     let mut view = ContinuousView::new()
         .x_label("Explored Nodes");
 
     for (i, trace) in traces.iter().enumerate() {
         let color = COLORS[i % COLORS.len()];
         view = view
-            .add(trace.lb_plot(color, mode))
-            .add(trace.ub_plot(color, mode));
+            .add(trace.lb_plot(color))
+            .add(trace.ub_plot(color));
     }
 
     view
 }
-pub fn fringe_view(traces: &[Trace], mode: Mode) -> ContinuousView {
+pub fn fringe_view(traces: &[Trace]) -> ContinuousView {
     let mut view = ContinuousView::new()
         .x_label("Explored Nodes");
 
     for (i, trace) in traces.iter().enumerate() {
         let color = COLORS[i % COLORS.len()];
         view = view
-            .add(trace.fsz_plot(color, mode));
+            .add(trace.fsz_plot(color));
     }
 
     view
